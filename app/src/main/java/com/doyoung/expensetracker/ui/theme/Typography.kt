@@ -1,4 +1,5 @@
 package com.doyoung.expensetracker.ui.theme
 
-class Typography {
-}
+import androidx.compose.material3.Typography
+
+val AppTypography = Typography()

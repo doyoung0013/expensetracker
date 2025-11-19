@@ -1,4 +1,5 @@
 package com.doyoung.expensetracker.ui.theme
 
-class Color {
-}
+import androidx.compose.ui.graphics.Color
+
+val PrimaryGreen = Color(0xFF4CAF50)
