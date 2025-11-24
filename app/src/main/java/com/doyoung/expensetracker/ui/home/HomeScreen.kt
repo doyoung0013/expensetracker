@@ -12,8 +12,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.doyoung.expensetracker.ui.components.PrimaryButton
 import com.doyoung.expensetracker.ui.theme.PrimaryGreenDark
 import com.doyoung.expensetracker.ui.theme.TextSecondary
@@ -23,13 +25,17 @@ fun HomeScreen(
     onAddIncomeClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onViewTransactionsClick: () -> Unit,
-    onViewStatisticsClick: () -> Unit
+    onViewStatisticsClick: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val state = viewModel.state.collectAsState().value
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+
         // 잔액 카드
         Card(
             modifier = Modifier
@@ -37,21 +43,22 @@ fun HomeScreen(
                 .padding(bottom = 16.dp),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "이번 달 잔액",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextSecondary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "₩ 1,234,567",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = PrimaryGreenDark
-                )
+            Column(modifier = Modifier.padding(16.dp)) {
+
+                Text(text = "이번 달 잔액")
+
+                when {
+                    state.isLoading -> Text("로딩 중...")
+
+                    state.error != null -> Text("에러: ${state.error}")
+
+                    else -> {
+                        Text(
+                            text = "₩ ${state.balance}",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
+                }
             }
         }
 
@@ -65,6 +72,5 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         PrimaryButton(text = "통계 보기", onClick = onViewStatisticsClick)
-
     }
 }
