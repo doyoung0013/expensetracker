@@ -1,4 +1,5 @@
 package com.doyoung.expensetracker.util
 
-class Constants {
+object Constants {
+    const val DB_NAME = "expense_tracker_db"
 }

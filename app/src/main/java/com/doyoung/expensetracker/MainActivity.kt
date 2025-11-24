@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import com.doyoung.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.doyoung.expensetracker.navigation.AppNavGraph
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
