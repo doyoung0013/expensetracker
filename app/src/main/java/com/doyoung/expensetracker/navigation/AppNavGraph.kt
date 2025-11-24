@@ -1,27 +1,52 @@
 package com.doyoung.expensetracker.navigation
 
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.*
+import com.doyoung.expensetracker.ui.components.BottomNavBar
+import com.doyoung.expensetracker.ui.components.TopBar
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.padding
 
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
+    val backStack = navController.currentBackStackEntryAsState()
+    val current = backStack.value?.destination?.route ?: "home"
 
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
-        composable("home") {
-            Text("홈 화면")
+    Scaffold(
+        topBar = {
+            TopBar(
+                title = when (current) {
+                    "home" -> "가계부 홈"
+                    "transactions" -> "전체 내역"
+                    "statistics" -> "통계"
+                    else -> ""
+                }
+            )
+        },
+        bottomBar = {
+            BottomNavBar(
+                currentRoute = current,
+                onNavigate = { route ->
+                    navController.navigate(route) {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
         }
-        composable("add_income") {
-            Text("수입 추가 화면")
-        }
-        composable("add_expense") {
-            Text("지출 추가 화면")
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "home",
+            modifier = androidx.compose.ui.Modifier.padding(innerPadding)
+        ) {
+            composable("home") { Text("홈 화면") }
+            composable("transactions") { Text("전체 내역 화면") }
+            composable("statistics") { Text("통계 화면") }
         }
     }
 }
