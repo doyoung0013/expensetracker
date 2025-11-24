@@ -8,6 +8,7 @@ import com.doyoung.expensetracker.ui.components.TopBar
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.padding
+import com.doyoung.expensetracker.ui.home.HomeScreen
 
 @Composable
 fun AppNavGraph() {
@@ -44,7 +45,14 @@ fun AppNavGraph() {
             startDestination = "home",
             modifier = androidx.compose.ui.Modifier.padding(innerPadding)
         ) {
-            composable("home") { Text("홈 화면") }
+            composable("home") {
+                HomeScreen(
+                    onAddIncomeClick = { navController.navigate("add_income") },
+                    onAddExpenseClick = { navController.navigate("add_expense") },
+                    onViewTransactionsClick = { navController.navigate("transactions") },
+                    onViewStatisticsClick = { navController.navigate("statistics") }
+                )
+            }
             composable("transactions") { Text("전체 내역 화면") }
             composable("statistics") { Text("통계 화면") }
         }
