@@ -8,6 +8,8 @@ import com.doyoung.expensetracker.ui.components.TopBar
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.padding
+import com.doyoung.expensetracker.ui.add_expense.AddExpenseScreen
+import com.doyoung.expensetracker.ui.add_income.AddIncomeScreen
 import com.doyoung.expensetracker.ui.home.HomeScreen
 
 @Composable
@@ -55,6 +57,13 @@ fun AppNavGraph() {
             }
             composable("transactions") { Text("전체 내역 화면") }
             composable("statistics") { Text("통계 화면") }
+            composable("add_income") {
+                AddIncomeScreen(onBackClick = { navController.popBackStack() })
+            }
+            composable("add_expense") {
+                AddExpenseScreen(onBackClick = { navController.popBackStack() })
+            }
+
         }
     }
 }
