@@ -14,13 +14,15 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun AddIncomeScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: AddIncomeViewModel = hiltViewModel()
 ) {
     val amount = remember { mutableStateOf("") }
     val category = remember { mutableStateOf("") }
     val memo = remember { mutableStateOf("") }
 
     Column(modifier = Modifier.padding(16.dp)) {
+
         OutlinedTextField(
             value = amount.value,
             onValueChange = { amount.value = it },
@@ -47,12 +49,21 @@ fun AddIncomeScreen(
         )
 
         Button(
-            onClick = onBackClick,
+            onClick = {
+                val amountLong = amount.value.toLongOrNull() ?: return@Button
+                viewModel.addIncome(
+                    amount = amountLong,
+                    category = category.value,
+                    memo = memo.value,
+                    date = LocalDate.now(),
+                    onSuccess = onBackClick
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
         ) {
-            Text(text = "저장 (더미) 후 돌아가기")
+            Text("저장")
         }
     }
 }
