@@ -7,12 +7,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.doyoung.expensetracker.data.model.Transaction
+import com.doyoung.expensetracker.data.model.TransactionType
+import java.time.LocalDate
 
 // -------------------------------------------------------
 // 색상
@@ -24,58 +30,56 @@ private val DividerGray = Color(0xFFE5E7EB)
 private val PrimaryGreenDark = Color(0xFF2E7D32)
 private val SecondaryGreen = Color(0xFF81C784)
 private val AmountText = Color(0xFF111827)
+private val ExpenseRed = Color(0xFFD32F2F)
+private val IncomeBlue = Color(0xFF1565C0)
 
 
 // -------------------------------------------------------
-// UI 모델
+// UI 모델 (날짜 헤더 + 행)
 // -------------------------------------------------------
 sealed interface TransactionListItem {
     data class DateHeader(val label: String) : TransactionListItem
     data class Row(
         val id: Long,
-        val name: String,
+        val title: String,
         val description: String,
-        val amount: String
+        val amountText: String,
+        val isExpense: Boolean
     ) : TransactionListItem
 }
 
 
 // -------------------------------------------------------
-// 메인 화면 (완성본)
+// 메인 화면 (DB 연동 버전)
 // -------------------------------------------------------
 
 @Composable
-fun TransactionListScreen() {
+fun TransactionListScreen(
+    viewModel: TransactionListViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
-    val items: List<TransactionListItem> = listOf(
-        TransactionListItem.DateHeader("30일 화요일"),
-        TransactionListItem.Row(
-            id = 1,
-            name = "(주)유니컴즈",
-            description = "통신비 · 010PAY 체크카드",
-            amount = "-810원"
-        ),
-        TransactionListItem.DateHeader("26일 금요일"),
-        TransactionListItem.Row(
-            id = 2,
-            name = "삼성화재해상보험",
-            description = "삼성화재보험 · 010PAY 체크카드",
-            amount = "-107,634원"
-        ),
-        TransactionListItem.Row(
-            id = 3,
-            name = "삼성화재해상보험",
-            description = "보험료 · 010PAY 체크카드",
-            amount = "-13,741원"
-        ),
-        TransactionListItem.DateHeader("25일 목요일"),
-        TransactionListItem.Row(
-            id = 4,
-            name = "한국전력전기요금",
-            description = "전기요금 · 010PAY 체크카드",
-            amount = "-10,780원"
-        )
-    )
+    // 로딩 / 에러 처리
+    when {
+        state.isLoading -> {
+            LoadingIndicator()
+            return
+        }
+        state.error != null -> {
+            ErrorText(state.error!!)
+            return
+        }
+    }
+
+    val transactions = state.transactions
+
+    // ✅ 상단 요약용: 이번 달 지출 합계
+    val totalExpense = transactions
+        .filter { it.type == TransactionType.EXPENSE }
+        .sumOf { it.amount }
+
+    // ✅ 리스트용 UI 아이템 변환 (날짜별 그룹 → DateHeader + Row)
+    val uiItems: List<TransactionListItem> = buildUiItems(transactions)
 
     LazyColumn(
         modifier = Modifier
@@ -83,20 +87,17 @@ fun TransactionListScreen() {
             .background(BgLight)
     ) {
 
-        // 상단 요약 영역
+        // 상단 요약
         item {
             SummaryHeader(
-                title = "이번 달 고정지출",
-                amount = "283,815원"
+                title = "이번 달 지출",
+                amount = formatCurrency(totalExpense)
             )
         }
 
-        // 여백
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+        item { Spacer(modifier = Modifier.height(8.dp)) }
 
-        // 카드 + 내부 리스트
+        // 카드로 전체 리스트 감싸기 (Card 안에는 Column만, LazyColumn 없음 → Crash X)
         item {
             Card(
                 modifier = Modifier
@@ -105,24 +106,20 @@ fun TransactionListScreen() {
                 colors = CardDefaults.cardColors(containerColor = CardWhite),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
 
-                    items(items) { item ->
+                    uiItems.forEach { item ->
                         when (item) {
-
                             is TransactionListItem.DateHeader -> {
                                 DateHeader(label = item.label)
                             }
 
                             is TransactionListItem.Row -> {
                                 TransactionRow(
-                                    name = item.name,
+                                    title = item.title,
                                     description = item.description,
-                                    amount = item.amount
+                                    amountText = item.amountText,
+                                    isExpense = item.isExpense
                                 )
                             }
                         }
@@ -131,9 +128,36 @@ fun TransactionListScreen() {
             }
         }
 
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+    }
+}
+
+
+// -------------------------------------------------------
+// UI 상태 표시
+// -------------------------------------------------------
+
+@Composable
+private fun LoadingIndicator() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgLight),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ErrorText(msg: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgLight),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "오류 발생: $msg", color = Color.Red)
     }
 }
 
@@ -154,22 +178,11 @@ private fun SummaryHeader(
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = AmountText
-            )
-            Text(
-                text = "편집",
-                style = MaterialTheme.typography.bodyMedium,
-                color = PrimaryGreenDark
-            )
-        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = AmountText
+        )
 
         Spacer(modifier = Modifier.height(6.dp))
 
@@ -207,9 +220,10 @@ private fun DateHeader(label: String) {
 
 @Composable
 private fun TransactionRow(
-    name: String,
+    title: String,
     description: String,
-    amount: String
+    amountText: String,
+    isExpense: Boolean
 ) {
     Column {
 
@@ -229,7 +243,7 @@ private fun TransactionRow(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = name.firstOrNull()?.toString() ?: "",
+                    text = title.firstOrNull()?.toString() ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = PrimaryGreenDark
                 )
@@ -237,31 +251,33 @@ private fun TransactionRow(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // 이름 + 설명
+            // 제목 + 설명
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = name,
+                    text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     color = AmountText
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CaptionGray,
-                    maxLines = 1
-                )
+                if (description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CaptionGray,
+                        maxLines = 1
+                    )
+                }
             }
 
             // 금액
             Text(
-                text = amount,
+                text = amountText,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = AmountText
+                color = if (isExpense) ExpenseRed else IncomeBlue
             )
         }
 
@@ -274,3 +290,55 @@ private fun TransactionRow(
         )
     }
 }
+
+
+// -------------------------------------------------------
+// 헬퍼 함수들 (Transaction → UI 모델 변환 등)
+// -------------------------------------------------------
+
+// Transaction 리스트를 날짜별로 그룹핑해서
+// DateHeader + Row 리스트로 평탄화
+private fun buildUiItems(transactions: List<Transaction>): List<TransactionListItem> {
+    if (transactions.isEmpty()) return emptyList()
+
+    val sorted = transactions.sortedByDescending { it.date } // 최신 날짜 위로
+    val grouped: Map<LocalDate, List<Transaction>> = sorted.groupBy { it.date }
+
+    val result = mutableListOf<TransactionListItem>()
+
+    grouped.forEach { (date, list) ->
+        val dateLabel = "${date.dayOfMonth}일 ${date.dayOfWeekKorean()}"
+        result += TransactionListItem.DateHeader(dateLabel)
+
+        list.forEach { tx ->
+            val isExpense = tx.type == TransactionType.EXPENSE
+            val amountText = (if (isExpense) "-" else "+") + formatCurrency(tx.amount)
+
+            result += TransactionListItem.Row(
+                id = tx.id,
+                title = tx.category,      // 카테고리를 제목처럼
+                description = tx.memo,    // 메모를 설명으로
+                amountText = amountText,
+                isExpense = isExpense
+            )
+        }
+    }
+
+    return result
+}
+
+// 1,000 단위 콤마 + "원"
+private fun formatCurrency(amount: Long): String =
+    "%,d원".format(amount)
+
+// 요일 한글 변환
+private fun LocalDate.dayOfWeekKorean(): String =
+    when (this.dayOfWeek.value) {
+        1 -> "월요일"
+        2 -> "화요일"
+        3 -> "수요일"
+        4 -> "목요일"
+        5 -> "금요일"
+        6 -> "토요일"
+        else -> "일요일"
+    }
