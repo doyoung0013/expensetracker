@@ -24,4 +24,7 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version = "2.0.21-1.0.25" }
+hilt = { id = "com.google.dagger.hilt.android", version = "2.51.1" }
+
 
