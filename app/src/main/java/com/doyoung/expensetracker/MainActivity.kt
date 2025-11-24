@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.doyoung.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.doyoung.expensetracker.navigation.AppNavGraph
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
